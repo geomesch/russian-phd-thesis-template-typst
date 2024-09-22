@@ -1,6 +1,7 @@
 #import "../lib.typ": *
-
 #part_count.step() // Обновление счетчика разделов 
+#show: fix-indent()
+
 = Вёрстка таблиц <ch3>
 
 == Таблица обыкновенная <ch3:sect1>
