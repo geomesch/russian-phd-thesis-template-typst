@@ -1,6 +1,5 @@
-#import "../lib.typ": *
+#import "@preview/modern-russian-dissertation:0.1.0": *
 #set heading(numbering: none)
-#show: fix-indent()
 
 = Введение <intro> // Название и ссылка на него 
 

@@ -7,72 +7,93 @@
 // global state containing the glossary entry and their location
 #let __glossary_entries = state("__glossary_entries", (:))
 
+
+#let __split_key(key) = {
+  let text = str(key)
+  let pos = text.matches("-").at(-1).at("start")
+  let key = text.slice(0, pos)
+  let form = text.slice(pos + 1, )
+  return (key, form)
+}
+
+#let __extract_key(key, dict) = {
+
+  if key in dict {
+    (dict.at(key), dict.at(key).at("short"))
+  } else{
+  let text = str(key)
+  if text.contains("-") {
+    let (key, form) = __split_key(key)
+    if key in dict and form in dict.at(key).at("forms") {
+      (dict.at(key), dict.at(key).at("forms").at(form))
+    }
+    else{
+      (none, none)
+    }
+  }
+  else {
+    (none, none)
+  }
+  }
+}
+
 #let __query_labels_with_key(loc, key, before: false) = {
   if before {
     query(
       selector(label(__glossary_label_prefix + key)).before(loc, inclusive: false),
-      loc,
     )
   } else {
     query(
       selector(label(__glossary_label_prefix + key)),
-      loc,
     )
   }
 }
 
-// Reference a term
-#let gls(key, long: none, display: none) = {
-  locate(
-    loc => {
-      let __glossary_entries = __glossary_entries.final(loc);
-      if key in __glossary_entries {
-        let entry = __glossary_entries.at(key)
 
-        let gloss = __query_labels_with_key(loc, key, before: true)
+
+// Reference a term
+#let gls(key, long: none, display: none) = context {
+      let __glossary_entries = __glossary_entries.final();
+      let (entry, key_text) = __extract_key(key, __glossary_entries)
+
+      if entry != none {
+
+        let gloss = __query_labels_with_key(here(), entry.key, before: true)
 
         let is_first = gloss == ();
         let entlong = entry.at("long", default: "")
         let textLink = if display !=none {
             [#display]
         } else if (is_first or long == true) and entlong != [] and entlong != "" and long != false {
-          [#entry.short (#entlong)]
+          [#key_text (#entlong)]
         } else {
-          [#entry.short]
+          [#key_text]
         }
 
         [#link(label(entry.key), textLink)#label(__glossary_label_prefix + entry.key)]
       } else {
         text(fill: red, "Glossary entry not found: " + key)
       }
-    },
-  )
 }
 
 // reference to symbol 
-#let sym(key) = {
-  locate(
-    loc => {
-      let __glossary_entries = __glossary_entries.final(loc);
-      if key in __glossary_entries {
-        let entry = __glossary_entries.at(key)
-
+#let sym(key) = context {
+      let __glossary_entries = __glossary_entries.final();
+      let (entry, key_text) = __extract_key(key, __glossary_entries)
+      if entry != none {
         [#link(label(entry.key),[#entry.short])#label(__glossary_label_prefix + entry.key)]
       } else {
         text(fill: red, "Symbol entry not found: " + key)
       }
-    },
-  )
 }
 // equation include symbols 
-#let print-eq-sym(..keys) = {
+#let print-eq-sym(..keys) = context {
   "где"
   linebreak()
   for key in keys.pos() {
-    locate(
-    loc => {
-      let __glossary_entries = __glossary_entries.final(loc);
-      if key in __glossary_entries {
+      let __glossary_entries = __glossary_entries.final();
+      let (entry, key_text) = __extract_key(key, __glossary_entries)
+      if entry != none {
         let entry = __glossary_entries.at(key)
 
         let desc = if entry.desc != [] and entry.desc != none {
@@ -85,26 +106,35 @@
       } else {
         text(fill: red, "Symbol entry not found: " + key)
       }
-    },
-    )
     
   }
 }
 
 // show rule to make the references for glossarium
-#let make-glossary(body) = {
+#let make-glossary(body) = context {
   show ref: r => {
     if r.element != none and r.element.func() == figure and r.element.kind == __glossarium_figure {
       // call to the general citing function
       gls(str(r.target))
     } else {
-      r
-    }
+        let __glossary_entries = __glossary_entries.final();
+        if str(r.target).contains("-") {
+          let (key, form) = __split_key(str(r.target))
+          if key in __glossary_entries{
+            return gls(str(r.target))
+          }
+          else{
+            return r
+          }
+
+        }
+        return r
+    } 
   }
   body
 }
 
-#let print-glossary(entries, show-all: false, disable-back-references: false) = {
+#let print-glossary(entries, show-all: false, disable-back-references: false) = context {
   __glossary_entries.update(
     (x) => {
       for entry in entries {
@@ -113,6 +143,7 @@
           (
             key: entry.key,
             short: entry.short,
+            forms: entry.at("forms", default: ()),
             long: entry.at("long", default: ""),
             desc: entry.at("desc", default: ""),
           ),
@@ -126,18 +157,12 @@
   for entry in entries.sorted(key: (x) => x.key) {
     [
     #show figure.where(kind: __glossarium_figure): it => it.caption
-    #par(
-      hanging-indent: 1em,
-      first-line-indent: 0em,
-    )[
       #figure(
         supplement: "",
         kind: __glossarium_figure,
         numbering: none,
         caption: {
-          locate(
-            loc => {
-              let term_references = __query_labels_with_key(loc, entry.key)
+              let term_references = __query_labels_with_key(here(), entry.key)
               if term_references.len() != 0 or show-all  {
                 let desc = entry.at("desc", default: "")
                 let long = entry.at("long", default: "")
@@ -176,12 +201,10 @@
                   .join(", ")
                 }
               }
-            },
-          )
         },
       )[] #label(entry.key)
       ]
-    #parbreak()
-    ]
+    parbreak()
+    
   }
 };

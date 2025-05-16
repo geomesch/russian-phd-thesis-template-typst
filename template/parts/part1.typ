@@ -1,11 +1,10 @@
-#import "../lib.typ": *
+#import "@preview/modern-russian-dissertation:0.1.0": *
 #part_count.step() // Обновление счетчика разделов 
-#show: fix-indent()
 
 = Оформление различных элементов <ch1>
 
 == Форматирование текста <ch1:sec1>
-
+Есть такие животные -- @cat-plural. Каждому надо дать по @cat-dative. У кого нет @cat-genitive -- такое искренне жаль. Оооо, @cat -- это @cat-myform!
 Мы можем сделать *жирный текст* и _курсив_. 
 
 == Ссылки <ch1:sec2>

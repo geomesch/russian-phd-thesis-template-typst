@@ -1,6 +1,5 @@
-#import "../lib.typ": *
+#import "@preview/modern-russian-dissertation:0.1.0": *
 #part_count.step() // Обновление счетчика разделов 
-#show: fix-indent()
 
 = Вёрстка таблиц <ch3>
 

@@ -1,4 +1,4 @@
-#import "lib.typ": *
+#import "@preview/modern-russian-dissertation:0.1.0": *
 
 // Определение шаблона 
 #show: template.with(

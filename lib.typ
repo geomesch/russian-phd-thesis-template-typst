@@ -1,8 +1,7 @@
-#import "@preview/unify:0.5.0": *
-#import "@preview/codly:0.2.0": *
-#import "@preview/tablex:0.0.8": *
-#import "@preview/physica:0.9.3": *
-#import "@preview/indenta:0.0.3": fix-indent
+#import "@preview/unify:0.7.1": *
+#import "@preview/codly:1.3.0": *
+#import "@preview/tablex:0.0.9": *
+#import "@preview/physica:0.9.5": *
 #import "./glossarium.typ": *
 
 // Счетчики  
@@ -13,7 +12,9 @@
 #let total_page = context[#counter(page).final().at(0)]
 #let total_fig = context[#counter(figure).final().at(0)]
 #let total_table = context[#counter(figure.where(kind:table)).final().at(0)]
-#let total_bib = context (query(selector(ref)).filter(it => it.element == none).map(it => it.target).dedup().len())
+
+#let bib_count = counter("bib_refs")
+#let total_bib = context[#bib_count.final().at(0)]
 
 // Это входная точка - общий шаблон  
 #let template(
@@ -37,6 +38,7 @@
   supervisor-regalia: "уч. степень, уч. звание",
   supervisor-regalia-short: "уч. ст., уч. зв.",
   font-type: "Times New Roman",
+  font-type-math: "STIX Two Math",
   font-size: 14pt,
   link-color: blue.darken(60%),
   languages: (), 
@@ -71,7 +73,7 @@
     justify: true, 
     linebreaks: "optimized",
     first-line-indent: 2.5em, // Абзацный отступ. Должен быть одинаковым по всему тексту и равен пяти знакам (ГОСТ Р 7.0.11-2011, 5.3.7).
-    leading: 1em, // Полуторный интервал (ГОСТ 7.0.11-2011, 5.3.6)
+    leading: 1.5em, // Полуторный интервал (ГОСТ 7.0.11-2011, 5.3.6)
   ) 
     
   // форматирование заголовков
@@ -92,11 +94,14 @@
       }
     it
   }
-
-  // Отображение ссылок на figure (рисунки и таблицы) - ничего не отображать
-  set ref(supplement: it => {
-    if it.func() == figure {}
-  })
+  show math.equation: set text(font: font-type-math)
+  show ref: it => {
+  it 
+  if it.element != none {
+    return 
+  }
+  bib_count.step() // Счетчик библиографии
+  }
 
   // Настройка блоков кода 
   show: codly-init.with()
@@ -122,13 +127,15 @@
   set figure(supplement: [Рисунок])
   set figure.caption(separator: [ -- ])
   set figure(numbering: num => 
-    ((counter(heading.where(level:1)).get() + (num,)).map(str).join(".")),)
+    ((counter(heading.where(level:1)).get() + (num,)).map(str).join(".")),
+    supplement: [Рисунок],)
   
   // Настройка таблиц
   show figure.where(kind:table): set figure.caption(position: top)
   show figure.where(kind:table): set figure(supplement: [Таблица])
   show figure.where(kind:table): set figure(numbering: num => 
-    ((counter(heading.where(level:1)).get() + (num,)).map(str).join(".")),)
+    ((counter(heading.where(level:1)).get() + (num,)).map(str).join(".")),
+    supplement: [Таблица],)
   // Разбивать таблицы по страницам 
   show figure: set block(breakable: true)
   
@@ -203,10 +210,10 @@
   show heading.where(level:2): set heading(numbering: "A.1 ", supplement: [Приложение])
   
   // Set the numbering of the figures.
-  set figure(numbering: (x) => locate(loc => {
-    let idx = numbering("A", counter(heading).at(loc).first())
+  set figure(numbering: (x) => context {
+    let idx = numbering("A", counter(heading).at(here()).first())
     [#idx.#numbering("1", x)]
-  }))
+  })
   
   // Additional heading styling to update sub-counters.
   show heading: it => {

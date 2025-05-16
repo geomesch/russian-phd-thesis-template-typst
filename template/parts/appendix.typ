@@ -1,4 +1,4 @@
-#import "../lib.typ": *
+#import "@preview/modern-russian-dissertation:0.1.0": *
 #show: phd-appendix 
 
 = Примеры вставки листингов программного кода <app:A>
